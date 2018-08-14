@@ -343,6 +343,66 @@ static int initSockets() {
   return 1;
 }
 
+/**
+   Internal helper function that connects a nonblocking socket.
+   If the connection succeeds, zero is returned.  On error, -1 is returned, and errno is set appropriately.
+ */
+static int connectSocket(int sock, int timeoutsecs, const struct sockaddr *addr, socklen_t addrlen) {
+    int res;
+    struct timeval tv;
+    fd_set connset;
+    int valopt;
+    socklen_t lon;
+
+    /* Trying to connect with timeout */
+    res = connect(sock, addr, addrlen);
+    if (res < 0) {
+#ifdef WIN32
+	errno=WSAGetLastError();
+#endif
+	if (errno == EINPROGRESS) {
+	    do {
+		tv.tv_sec = timeoutsecs;
+		tv.tv_usec = 0;
+		FD_ZERO(&connset);
+		FD_SET(sock, &connset);
+		res = select(sock+1, NULL, &connset, NULL, &tv);
+#ifdef WIN32
+		errno=WSAGetLastError();
+#endif
+		if (res < 0 && errno != EINTR) {
+		    /* -1, error in select */
+		    return -1;
+		}
+		else if (res > 0) {
+		    /* 1, socket selected for write, now check for socket error */
+		    lon = sizeof(int);
+		    if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (void*)(&valopt), &lon) < 0) {
+			return -1;
+		    }
+		    if (valopt) {
+			errno = valopt; /* for later error reporting */
+			return -1;
+		    }
+		    /* leave the loop */
+		    break;
+		}
+		else {
+		    /* 0, timeout in select */
+		    return -1;
+		}
+	    } while (1);
+	}
+	else {
+	    /* some other error than EINPROGRESS */
+	    return -1;
+	}
+    }
+    errno = 0;
+    return 0;
+}
+
+
 /*
  * ConnectToTcpAddr connects to the given TCP port.
  */
@@ -370,8 +430,11 @@ ConnectClientToTcpAddr(unsigned int host, int port)
     return -1;
   }
 
-  if (connect(sock, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-    rfbClientErr("ConnectToTcpAddr: connect\n");
+  if (!SetNonBlocking(sock))
+      return -1;
+
+  if (connectSocket(sock, 10, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
+    rfbClientErr("ConnectToTcpAddr: %s\n", strerror(errno));
     close(sock);
     return -1;
   }
@@ -416,8 +479,9 @@ ConnectClientToTcpAddr6(const char *hostname, int port)
     sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sock >= 0)
     {
-      if (connect(sock, res->ai_addr, res->ai_addrlen) == 0)
-        break;
+      if(SetNonBlocking(sock))
+	  if (connectSocket(sock, 10, res->ai_addr, res->ai_addrlen) == 0)
+	      break;
       close(sock);
       sock = -1;
     }
@@ -427,7 +491,7 @@ ConnectClientToTcpAddr6(const char *hostname, int port)
 
   if (sock == -1)
   {
-    rfbClientErr("ConnectClientToTcpAddr6: connect\n");
+    rfbClientErr("ConnectClientToTcpAddr6: %s\n", strerror(errno));
     return -1;
   }
 

@@ -351,7 +351,7 @@ ConnectToRFBServer(rfbClient* client,const char *hostname, int port)
   if(client->QoS_DSCP && !SetDSCP(client->sock, client->QoS_DSCP))
      return FALSE;
 
-  return SetNonBlocking(client->sock);
+  return TRUE;
 }
 
 /*
@@ -382,9 +382,6 @@ rfbBool ConnectToRFBRepeater(rfbClient* client,const char *repeaterHost, int rep
     rfbClientLog("Unable to connect to VNC repeater\n");
     return FALSE;
   }
-
-  if (!SetNonBlocking(client->sock))
-    return FALSE;
 
   if (!ReadFromRFBServer(client, pv, sz_rfbProtocolVersionMsg))
     return FALSE;
