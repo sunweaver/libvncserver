@@ -1,9 +1,7 @@
 /*
- * rfbcrypto_gnutls.c - Crypto wrapper (gnutls version)
- */
-
-/*
- *  Copyright (C) 2011 Gernot Tenchio
+ * rfbcrypto_gnutls.c - Crypto wrapper (GnuTLS version)
+ *
+ *  Copyright (C) 2019 Christian Beier <dontmind@sdf.org>
  *
  *  This is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -22,29 +20,29 @@
  */
 
 #include <string.h>
-#include <gcrypt.h>
+#include <gnutls/crypto.h>
 #include "rfbcrypto.h"
 
 void digestmd5(const struct iovec *iov, int iovcnt, void *dest)
 {
-    gcry_md_hd_t c;
+    gnutls_hash_hd_t c;
     int i;
 
-    gcry_md_open(&c, GCRY_MD_MD5, 0);
+    gnutls_hash_init(&c, GNUTLS_DIG_MD5);
     for (i = 0; i < iovcnt; i++)
-	gcry_md_write(c, iov[i].iov_base, iov[i].iov_len);
-    gcry_md_final(c);
-    memcpy(dest, gcry_md_read(c, 0), gcry_md_get_algo_dlen(GCRY_MD_MD5));
+	gnutls_hash(c, iov[i].iov_base, iov[i].iov_len);
+
+    gnutls_hash_deinit(c, dest);
 }
 
 void digestsha1(const struct iovec *iov, int iovcnt, void *dest)
 {
-    gcry_md_hd_t c;
+    gnutls_hash_hd_t c;
     int i;
 
-    gcry_md_open(&c, GCRY_MD_SHA1, 0);
+    gnutls_hash_init(&c, GNUTLS_DIG_SHA1);
     for (i = 0; i < iovcnt; i++)
-	gcry_md_write(c, iov[i].iov_base, iov[i].iov_len);
-    gcry_md_final(c);
-    memcpy(dest, gcry_md_read(c, 0), gcry_md_get_algo_dlen(GCRY_MD_SHA1));
+	gnutls_hash(c, iov[i].iov_base, iov[i].iov_len);
+
+    gnutls_hash_deinit(c, dest);
 }
