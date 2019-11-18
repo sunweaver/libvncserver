@@ -23,6 +23,8 @@
 #include <gnutls/crypto.h>
 #include "rfbcrypto.h"
 
+#if LIBVNCSERVER_HAVE_SYS_UIO_H
+
 void digestmd5(const struct iovec *iov, int iovcnt, void *dest)
 {
     gnutls_hash_hd_t c;
@@ -46,3 +48,5 @@ void digestsha1(const struct iovec *iov, int iovcnt, void *dest)
 
     gnutls_hash_deinit(c, dest);
 }
+
+#endif

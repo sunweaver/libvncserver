@@ -26,6 +26,8 @@
 #include <openssl/md5.h>
 #include "rfbcrypto.h"
 
+#if LIBVNCSERVER_HAVE_SYS_UIO_H
+
 void digestmd5(const struct iovec *iov, int iovcnt, void *dest)
 {
     MD5_CTX c;
@@ -47,3 +49,5 @@ void digestsha1(const struct iovec *iov, int iovcnt, void *dest)
 	SHA1_Update(&c, iov[i].iov_base, iov[i].iov_len);
     SHA1_Final(dest, &c);
 }
+
+#endif
