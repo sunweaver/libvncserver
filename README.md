@@ -88,6 +88,10 @@ LibVNCServer uses CMake, so you can build via:
     cmake ..
     cmake --build .
 
+Encryption support in LibVNCClient and WebSockets support in LibVNCServer (both encrypted and unencrypted)
+depend on either one of the supported backends GnuTLS or OpenSSL. If both are installed, GnuTLS is used
+unless disabled via `-DWITH_GNUTLS=OFF`.
+
 For some more comprehensive examples that include installation of dependencies, see
 the [Unix CI](.travis.yml) and [Windows CI](.appveyor.yml) build setups.
 
